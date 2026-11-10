@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#fffaf1">
+  <meta name="description" content="Piso Gay: planes, comidas y noches en el piso compartido.">
+  <title>Piso Gay · La partida empieza aquí</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Piso Gay, inicio"><img class="brand-icon" src="/logo.svg" alt="" width="44" height="44"> PISO GAY<span class="brand-dot">♣</span></a>
+      <div class="topbar-actions hidden" id="user-actions">
+        <button type="button" class="profile-trigger" id="profile-button" aria-label="Abrir mi perfil">
+          <span id="header-avatar" class="avatar avatar-header" aria-hidden="true">♥</span>
+          <span class="user-chip" id="username-label"></span>
+        </button>
+        <button type="button" class="text-button" id="logout-button">Salir</button>
+      </div>
+    </header>
+
+    <main id="main-content">
+      <section id="view-auth" class="view" aria-labelledby="auth-title">
+        <div class="auth-hero">
+          <h1 id="auth-title">Bienvenido al <span class="headline-highlight">Piso Gay</span></h1>
+          <p>Perdón por el desorden, es que vivimos aquí</p>
+          <div class="hero-deck" aria-hidden="true"><span class="playing-card playing-card-back">♣</span><span class="playing-card playing-card-front">A<small>♥</small></span><span class="hero-club">♣</span></div>
+        </div>
+        <div class="panel auth-panel">
+          <div class="segmented" role="group" aria-label="Acceso">
+            <button type="button" id="show-login" class="selected" aria-pressed="true">Entrar</button>
+            <button type="button" id="show-register" aria-pressed="false">Crear cuenta</button>
+          </div>
+          <form id="login-form" class="form-stack">
+            <label>Nombre de usuario<input name="username" autocomplete="username" required maxlength="100" placeholder="Tu usuario"></label>
+            <label>Contraseña<input name="password" type="password" autocomplete="current-password" required placeholder="Tu contraseña"></label>
+            <button class="button button-primary" type="submit">Entrar al piso <span aria-hidden="true">→</span></button>
+          </form>
+          <form id="register-form" class="form-stack hidden">
+            <label>Nombre de usuario<input name="username" autocomplete="username" required maxlength="100" placeholder="Elige un usuario"></label>
+            <label>Correo electrónico<input name="email" type="email" autocomplete="email" required maxlength="255" placeholder="tu@email.com"></label>
+            <label>Contraseña<input name="password" type="password" autocomplete="new-password" required minlength="8" placeholder="Mínimo 8 caracteres"></label>
+            <button class="button button-primary" type="submit">Crear cuenta <span aria-hidden="true">→</span></button>
+            <p class="form-hint">Las cuentas nuevas son de invitado. Un anfitrión puede darte acceso como residente.</p>
+          </form>
+        </div>
+      </section>
+
+      <section id="view-planes" class="view hidden" aria-labelledby="planes-title">
+        <div class="page-heading"><div><h1 id="planes-title">Planes Gays</h1><p>(Que no sean jugar a roguelikes)</p></div><button type="button" class="icon-button" id="refresh-planes" aria-label="Actualizar planes" title="Actualizar planes">↻</button></div>
+        <div class="section-heading"><h2>Actividades</h2><span class="count" id="activities-count"></span></div>
+        <div id="activities-list" class="card-list" aria-live="polite"></div>
+        <div class="section-heading meals-heading"><h2>Comidas especiales</h2><span class="count" id="meals-count"></span></div>
+        <div id="meals-list" class="card-list" aria-live="polite"></div>
+      </section>
+
+      <section id="view-ranking" class="view hidden" aria-labelledby="ranking-title">
+        <div class="page-heading"><div><h1 id="ranking-title">Veces que me he quedado a dormir en el Piso Gay</h1><p>Premio al que gane a Yorch</p></div><button type="button" class="icon-button" id="refresh-ranking" aria-label="Actualizar ranking" title="Actualizar ranking">↻</button></div>
+        <div class="ranking-intro"><span aria-hidden="true">♦</span><div><strong>¿Quién lleva la mejor racha?</strong><p>Cada noche suma. Los empates comparten podio.</p></div></div>
+        <div id="ranking-podium" class="ranking-podium hidden" role="list" aria-label="Los tres primeros del ranking" aria-live="polite"></div>
+        <div id="ranking-rest-heading" class="section-heading ranking-rest-heading hidden"><h2>Más participantes</h2></div>
+        <ol id="ranking-list" class="ranking-list" aria-live="polite"></ol>
+      </section>
+
+      <section id="view-crear" class="view hidden" aria-labelledby="crear-title">
+        <div class="page-heading"><div><h1 id="crear-title">Crea tu Plan Gay</h1><p>También vale algo que no sea ver anime</p></div></div>
+        <div class="segmented create-switch" role="group" aria-label="Tipo de creación">
+          <button type="button" class="selected" data-create="noche" aria-pressed="true">Noche</button>
+          <button type="button" data-create="actividad" aria-pressed="false">Plan</button>
+          <button type="button" data-create="comida" aria-pressed="false">Comida</button>
+        </div>
+        <div id="night-guest" class="panel">
+          <h2>Apunta una noche</h2><p class="panel-description">Tu anotación quedará pendiente hasta que la valide un anfitrión.</p>
+          <form id="night-form" class="form-stack">
+            <label>Fecha<input name="fecha" type="date" required></label>
+            <label>Nota (opcional)<textarea name="notas" maxlength="255" rows="3" placeholder="¿Algún recuerdo de esa noche?"></textarea></label>
+            <button type="submit" class="button button-primary">Enviar para validar <span aria-hidden="true">→</span></button>
+          </form>
+          <div class="section-heading nights-heading"><h2>Mis noches</h2></div>
+          <div id="my-nights" class="card-list" aria-live="polite"></div>
+        </div>
+        <div id="night-host" class="panel hidden">
+          <h2>Noches por validar</h2><p class="panel-description">Confirma o rechaza las noches apuntadas por invitados.</p>
+          <div id="pending-nights" class="card-list" aria-live="polite"></div>
+        </div>
+        <div id="create-activity" class="panel hidden">
+          <h2>Propón un plan</h2><p class="panel-description">Una quedada, una peli, lo que se te ocurra.</p>
+          <form id="activity-form" class="form-stack">
+            <label>Título<input name="titulo" required maxlength="100" placeholder="Noche de juegos"></label>
+            <label>Cuándo<input name="fecha_hora" type="datetime-local" required></label>
+            <label>Lugar<input name="lugar" maxlength="100" value="En el piso" required></label>
+            <label>Descripción (opcional)<textarea name="descripcion" rows="3" placeholder="Cuéntanos el plan"></textarea></label>
+            <button type="submit" class="button button-primary">Publicar plan <span aria-hidden="true">→</span></button>
+          </form>
+        </div>
+        <div id="create-meal" class="panel hidden">
+          <h2>Prepara una comida</h2><p class="panel-description">Al publicarla, crearemos el plan asociado automáticamente. Nadie tendrá que hacer nada más para apuntarse.</p>
+          <form id="meal-form" class="form-stack">
+            <label>Nombre del evento<input name="nombre_evento" required maxlength="100" placeholder="Cena temática"></label>
+            <label>Fecha y hora<input name="fecha" type="datetime-local" required></label>
+            <label>Menú<textarea name="menu_platos" rows="3" required placeholder="¿Qué vamos a comer?"></textarea></label>
+            <label>Coste total (€)<input name="coste_total" type="number" min="0" max="999999.99" step="0.01" value="0.00" required></label>
+            <button type="submit" class="button button-primary">Publicar comida <span aria-hidden="true">→</span></button>
+          </form>
+        </div>
+      </section>
+
+      <section id="view-profile" class="view hidden" aria-labelledby="profile-title">
+        <div class="page-heading"><div><h1 id="profile-title">Mi perfil</h1><p>Esta es la cara que verán los demás en el ranking y en los planes.</p></div></div>
+        <div class="panel profile-panel">
+          <div class="profile-summary">
+            <span id="profile-avatar" class="avatar avatar-large" aria-hidden="true">♥</span>
+            <div><h2 id="profile-name"></h2><p id="profile-role"></p></div>
+          </div>
+          <form id="avatar-form" class="form-stack" enctype="multipart/form-data">
+            <label>Elige tu foto<input name="avatar" type="file" accept="image/jpeg,image/png,image/webp" required></label>
+            <p class="form-hint">JPG, PNG o WebP · máximo 2 MB. La foto se recorta a formato cuadrado y la pueden ver otros usuarios del piso.</p>
+            <button type="submit" class="button button-primary">Guardar foto <span aria-hidden="true">→</span></button>
+          </form>
+          <button type="button" id="delete-avatar" class="button button-danger hidden">Quitar mi foto</button>
+        </div>
+      </section>
+    </main>
+
+    <nav id="bottom-nav" class="bottom-nav hidden" aria-label="Navegación principal">
+      <button type="button" data-view="planes" class="active" aria-current="page"><span class="nav-icon" aria-hidden="true">♠</span>Planes</button>
+      <button type="button" data-view="ranking"><span class="nav-icon" aria-hidden="true">♣</span>Ranking</button>
+      <button type="button" data-view="crear"><span class="nav-icon" aria-hidden="true">♦</span>Nuevo</button>
+    </nav>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  </div>
+</body>
+</html>

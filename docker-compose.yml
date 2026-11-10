@@ -1,0 +1,56 @@
+services:
+  database:
+    image: mariadb:10.11
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in .env}
+      MARIADB_DATABASE: ${DB_NAME:?Set DB_NAME in .env}
+      MARIADB_USER: ${DB_USER:?Set DB_USER in .env}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    networks:
+      - internal
+
+  backend:
+    build: ./backend
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      DB_HOST: database
+      DB_PORT: "3306"
+      DB_NAME: ${DB_NAME:?Set DB_NAME in .env}
+      DB_USER: ${DB_USER:?Set DB_USER in .env}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      SILENCE_SECRET_KEY: ${SILENCE_SECRET_KEY:?Set SILENCE_SECRET_KEY in .env}
+    volumes:
+      - ./db/schema.sql:/app/db/schema.sql:ro
+      - avatar_data:/app/media/avatars
+    ports:
+      - "127.0.0.1:8000:8000"
+    networks:
+      - internal
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:8080:80"
+    networks:
+      - internal
+
+volumes:
+  mariadb_data:
+  avatar_data:
+
+networks:
+  internal:
+    driver: bridge
