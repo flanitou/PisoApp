@@ -46,6 +46,11 @@ services:
       - "127.0.0.1:8080:80"
     networks:
       - internal
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: piso_tunnel
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    restart: always
 
 volumes:
   mariadb_data:
