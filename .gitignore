@@ -1,0 +1,11 @@
+# Never commit runtime secrets, even when using local overrides.
+.env
+.env.*
+!.env.example
+
+__pycache__/
+*.py[cod]
+.venv/
+node_modules/
+*.log
+.DS_Store

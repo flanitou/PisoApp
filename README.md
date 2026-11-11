@@ -1,19 +1,34 @@
-# Piso Gay — web y API local
+# Piso Gay — despliegue y desarrollo
 
-## Arranque
+## Despliegue en el VPS (`piso.juegosmasids.es`)
 
-Si aún no tienes `.env`, copia `.env.example` a `.env` y cambia sus secretos. Después:
+1. Comprueba que el registro **A** de `piso.juegosmasids.es` apunta a la IP pública del VPS. Si hay un registro AAAA, también debe apuntar al servidor o eliminarse. Permite conexiones entrantes TCP **80** y **443** en el firewall del proveedor y del VPS. Los puertos no deben estar ocupados por otro servidor web.
+2. Clona el repositorio en el VPS. Copia `.env.example` a `.env`, reemplaza las contraseñas y genera una nueva `SILENCE_SECRET_KEY` (por ejemplo, `python3 -c 'import secrets; print(secrets.token_urlsafe(48))'`). **Nunca subas `.env` al repositorio.**
+3. Desde la carpeta del proyecto, arranca los servicios:
 
 ```bash
-docker compose up --build -d
+chmod 600 .env
+docker compose config --quiet
+docker compose up -d --build
 docker compose ps
+docker compose logs caddy --tail=50
 ```
 
-Abre **http://localhost:8080** para usar la web en el navegador. Nginx sirve la SPA y envía las peticiones `/api/` al backend sin cambiar su ruta. Para pruebas directas, la API también está en `http://localhost:8000/api`.
+Abre **https://piso.juegosmasids.es**. Caddy obtiene y renueva el certificado automáticamente y redirige HTTP a HTTPS. Solo Caddy publica 80/443: Nginx, el backend y MariaDB quedan accesibles únicamente entre contenedores. Conserva los volúmenes `mariadb_data`, `avatar_data`, `caddy_data` y `caddy_config` en tus copias de seguridad.
 
-La base existente se conserva: al arrancar, el backend crea las tablas nuevas si faltan y cambia el valor por defecto del rol a `guest`, sin modificar los usuarios `resident` anteriores. **No uses `docker compose down -v`** si quieres conservar los datos.
+**Importante antes de publicar en GitHub:** este repositorio ya tenía `.env` registrado en Git, incluso en commits anteriores. Se ha retirado del índice y ahora está en `.gitignore`, pero **sigue en el historial**. Si ese historial llegó a un repositorio remoto, considera las credenciales expuestas. Cambia las contraseñas y la clave de Silence y publica únicamente un historial saneado (o un repositorio nuevo con historial limpio); añadir `.gitignore` no elimina los secretos de commits anteriores. No cambies `DB_PASSWORD` sobre una MariaDB ya inicializada sin actualizar también la contraseña del usuario en la base de datos.
 
-La web guarda el token de sesión en `localStorage` para recordar el acceso. Antes de exponerla fuera de tu equipo necesitarás HTTPS, revisar la política de seguridad de los tokens y actualizar las dependencias heredadas de Silence; Compose solo publica la web en `localhost` por defecto.
+La base existente se conserva: al arrancar, el backend crea las tablas nuevas si faltan y cambia el valor por defecto del rol a `guest`, sin modificar los usuarios `resident` anteriores. **No uses `docker compose down -v`** si quieres conservar datos ni certificados.
+
+## Desarrollo local
+
+No arranques el Compose de producción en tu equipo: intentaría solicitar un certificado para el dominio del VPS. Usa el fichero adicional para conservar `http://localhost:8080` y la API en `http://localhost:8000/api`:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+```
+
+La web guarda el token de sesión en `localStorage`. HTTPS protege el transporte, pero antes de considerar el servicio endurecido para Internet revisa las dependencias antiguas de Silence y la política de seguridad de sus tokens.
 
 ## Fotos de perfil
 

@@ -1,0 +1,14 @@
+# Optional local development: no public proxy or certificate requests.
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+services:
+  backend:
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  frontend:
+    ports:
+      - "127.0.0.1:8080:80"
+
+  caddy:
+    profiles:
+      - production

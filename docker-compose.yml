@@ -1,6 +1,7 @@
 services:
   database:
     image: mariadb:10.11
+    restart: unless-stopped
     environment:
       MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in .env}
       MARIADB_DATABASE: ${DB_NAME:?Set DB_NAME in .env}
@@ -20,6 +21,7 @@ services:
 
   backend:
     build: ./backend
+    restart: unless-stopped
     depends_on:
       database:
         condition: service_healthy
@@ -33,28 +35,41 @@ services:
     volumes:
       - ./db/schema.sql:/app/db/schema.sql:ro
       - avatar_data:/app/media/avatars
-    ports:
-      - "127.0.0.1:8000:8000"
+    expose:
+      - "8000"
     networks:
       - internal
 
   frontend:
     build: ./frontend
+    restart: unless-stopped
     depends_on:
       - backend
-    ports:
-      - "127.0.0.1:8080:80"
+    expose:
+      - "80"
     networks:
       - internal
-  tunnel:
-    image: cloudflare/cloudflared:latest
-    container_name: piso_tunnel
-    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
-    restart: always
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - internal
 
 volumes:
   mariadb_data:
   avatar_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   internal:
