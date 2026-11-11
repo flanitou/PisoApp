@@ -79,12 +79,26 @@
             <label>Nota (opcional)<textarea name="notas" maxlength="255" rows="3" placeholder="¿Algún recuerdo de esa noche?"></textarea></label>
             <button type="submit" class="button button-primary">Enviar para validar <span aria-hidden="true">→</span></button>
           </form>
+          <details class="historical-details">
+            <summary>¿No recuerdas las fechas? Solicita noches históricas</summary>
+            <p class="panel-description">La fecha solo identifica la solicitud: no significa que todas las noches fueran ese día. Las noches sumarán cuando un anfitrión las apruebe.</p>
+            <form id="historical-form" class="form-stack">
+              <label>Fecha de referencia<input name="fecha_referencia" type="date" required></label>
+              <label>¿Cuántas noches fueron?<input name="cantidad" type="number" min="1" max="31" step="1" value="5" required></label>
+              <label>Motivo<textarea name="motivo" maxlength="255" rows="2" required>Fechas exactas desconocidas</textarea></label>
+              <button type="submit" class="button button-primary">Enviar ajuste para validar <span aria-hidden="true">→</span></button>
+            </form>
+          </details>
           <div class="section-heading nights-heading"><h2>Mis noches</h2></div>
           <div id="my-nights" class="card-list" aria-live="polite"></div>
+          <div class="section-heading nights-heading"><h2>Mis ajustes históricos</h2></div>
+          <div id="my-adjustments" class="card-list" aria-live="polite"></div>
         </div>
         <div id="night-host" class="panel hidden">
           <h2>Noches por validar</h2><p class="panel-description">Confirma o rechaza las noches apuntadas por invitados.</p>
           <div id="pending-nights" class="card-list" aria-live="polite"></div>
+          <div class="section-heading nights-heading"><h2>Ajustes históricos pendientes</h2></div>
+          <div id="pending-adjustments" class="card-list" aria-live="polite"></div>
         </div>
         <div id="create-activity" class="panel hidden">
           <h2>Propón un plan</h2><p class="panel-description">Una quedada, una peli, lo que se te ocurra.</p>

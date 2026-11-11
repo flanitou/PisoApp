@@ -326,9 +326,116 @@ def register_routes(app):
             cursor.execute("UPDATE pernoctaciones SET estado=%s, validado_por=%s, fecha_validacion=NOW() WHERE pernoctacion_id=%s", (state, user["user_id"], night_id))
         return jsonify({"pernoctacion_id": night_id, "estado": state})
 
+    @app.get("/api/ajustes-pernoctaciones")
+    @authenticated
+    def historical_nights(user):
+        query = (
+            "SELECT a.ajuste_id, a.usuario_id, u.username, "
+            "DATE_FORMAT(a.fecha_referencia, '%%Y-%%m-%%d') AS fecha_referencia, "
+            "a.cantidad, a.motivo, a.estado, a.validado_por, "
+            "DATE_FORMAT(a.fecha_validacion, '%%Y-%%m-%%dT%%H:%%i:%%s') AS fecha_validacion "
+            "FROM ajustes_pernoctaciones a JOIN users u ON u.user_id=a.usuario_id"
+        )
+        if user["role"] == "resident":
+            query += " ORDER BY a.fecha_referencia DESC"
+            params = ()
+        else:
+            query += " WHERE a.usuario_id=%s ORDER BY a.fecha_referencia DESC"
+            params = (user["user_id"],)
+        with database() as cursor:
+            rows = many(cursor, query, params)
+        return jsonify(rows)
+
+    @app.post("/api/ajustes-pernoctaciones")
+    @authenticated
+    def create_historical_nights(user):
+        if user["role"] != "guest":
+            raise HTTPError(403, "Solo los invitados pueden solicitar noches históricas")
+        data = body(("fecha_referencia", "cantidad", "motivo"))
+        reference = day(data, "fecha_referencia")
+        if reference > date.today():
+            raise HTTPError(400, "La fecha de referencia no puede ser futura")
+        amount = data.get("cantidad")
+        if type(amount) is not int or not 1 <= amount <= 31:
+            raise HTTPError(400, "cantidad debe ser un entero entre 1 y 31")
+        reason = text(data, "motivo", 255)
+        with database() as cursor:
+            cursor.execute(
+                "INSERT INTO ajustes_pernoctaciones (usuario_id, fecha_referencia, cantidad, motivo) "
+                "VALUES (%s, %s, %s, %s)",
+                (user["user_id"], reference, amount, reason),
+            )
+            adjustment_id = cursor.lastrowid
+        return jsonify({"ajuste_id": adjustment_id, "estado": "pendiente"}), 201
+
+    @app.put("/api/ajustes-pernoctaciones/<int:adjustment_id>")
+    @authenticated
+    def resubmit_historical_nights(user, adjustment_id):
+        if user["role"] != "guest":
+            raise HTTPError(403, "Solo los invitados pueden reenviar sus solicitudes")
+        with database() as cursor:
+            cursor.execute(
+                "UPDATE ajustes_pernoctaciones SET estado='pendiente', validado_por=NULL, fecha_validacion=NULL "
+                "WHERE ajuste_id=%s AND usuario_id=%s AND estado='rechazada'",
+                (adjustment_id, user["user_id"]),
+            )
+            if not cursor.rowcount:
+                raise HTTPError(404, "Solicitud rechazada no encontrada")
+        return jsonify({"ajuste_id": adjustment_id, "estado": "pendiente"})
+
+    @app.delete("/api/ajustes-pernoctaciones/<int:adjustment_id>")
+    @authenticated
+    def delete_historical_nights(user, adjustment_id):
+        if user["role"] != "guest":
+            raise HTTPError(403, "Solo los invitados pueden borrar sus solicitudes")
+        with database() as cursor:
+            cursor.execute(
+                "DELETE FROM ajustes_pernoctaciones WHERE ajuste_id=%s AND usuario_id=%s "
+                "AND estado IN ('pendiente', 'rechazada')",
+                (adjustment_id, user["user_id"]),
+            )
+            if not cursor.rowcount:
+                raise HTTPError(404, "Solicitud inexistente o ya aprobada")
+        return "", 204
+
+    @app.put("/api/ajustes-pernoctaciones/<int:adjustment_id>/validacion")
+    @authenticated
+    def validate_historical_nights(user, adjustment_id):
+        if user["role"] != "resident":
+            raise HTTPError(403, "Solo los anfitriones pueden validar noches históricas")
+        data = body(("estado",))
+        state = text(data, "estado")
+        if state not in ("aprobada", "rechazada"):
+            raise HTTPError(400, "estado debe ser aprobada o rechazada")
+        with database() as cursor:
+            row = one(
+                cursor,
+                "SELECT a.usuario_id, a.estado, u.role FROM ajustes_pernoctaciones a "
+                "JOIN users u ON u.user_id=a.usuario_id WHERE a.ajuste_id=%s FOR UPDATE",
+                (adjustment_id,),
+            )
+            if not row or row["estado"] != "pendiente" or row["role"] != "guest" or row["usuario_id"] == user["user_id"]:
+                raise HTTPError(409, "No hay un ajuste pendiente de un invitado")
+            cursor.execute(
+                "UPDATE ajustes_pernoctaciones SET estado=%s, validado_por=%s, fecha_validacion=NOW() "
+                "WHERE ajuste_id=%s",
+                (state, user["user_id"], adjustment_id),
+            )
+        return jsonify({"ajuste_id": adjustment_id, "estado": state})
+
     @app.get("/api/ranking/pernoctaciones")
     @authenticated
     def night_ranking(user):
         with database() as cursor:
-            rows = many(cursor, "SELECT RANK() OVER (ORDER BY noches DESC) AS posicion, usuario_id, username, noches FROM (SELECT u.user_id AS usuario_id, u.username, COUNT(p.pernoctacion_id) AS noches FROM users u JOIN pernoctaciones p ON p.usuario_id=u.user_id AND p.estado='aprobada' WHERE u.role='guest' GROUP BY u.user_id, u.username) AS conteo ORDER BY posicion, username")
+            rows = many(cursor,
+                "SELECT RANK() OVER (ORDER BY noches DESC) AS posicion, usuario_id, username, noches FROM ("
+                "SELECT u.user_id AS usuario_id, u.username, "
+                "CAST(COALESCE(p.noches, 0) + COALESCE(a.noches, 0) AS UNSIGNED) AS noches "
+                "FROM users u "
+                "LEFT JOIN (SELECT usuario_id, COUNT(*) AS noches FROM pernoctaciones "
+                "WHERE estado='aprobada' GROUP BY usuario_id) p ON p.usuario_id=u.user_id "
+                "LEFT JOIN (SELECT usuario_id, SUM(cantidad) AS noches FROM ajustes_pernoctaciones "
+                "WHERE estado='aprobada' GROUP BY usuario_id) a ON a.usuario_id=u.user_id "
+                "WHERE u.role='guest' AND (p.noches IS NOT NULL OR a.noches IS NOT NULL)"
+                ") AS conteo ORDER BY posicion, username")
         return jsonify(rows)

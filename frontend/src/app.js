@@ -416,15 +416,19 @@ async function uploadAvatar(file) {
 
 async function loadNights() {
   if (!state.token) return;
+  const token = state.token;
   try {
-    const rows = await apiFetch("pernoctaciones");
+    const [rows, adjustments] = await Promise.all([
+      apiFetch("pernoctaciones"),
+      apiFetch("ajustes-pernoctaciones"),
+    ]);
+    if (token !== state.token) return;
     const host = state.user?.role === "resident";
     const list = host ? $("#pending-nights") : $("#my-nights");
     list.replaceChildren();
     const visible = host ? rows.filter((night) => night.estado === "pendiente") : rows;
     if (!visible.length) {
       empty(list, host ? "No hay noches pendientes. Todo al día." : "Aún no has apuntado ninguna noche.");
-      return;
     }
     for (const night of visible) {
       const item = card(host ? night.username : formatDate(night.fecha, false), night.estado.toUpperCase(), night.estado === "pendiente" ? "badge-pending" : "");
@@ -446,9 +450,70 @@ async function loadNights() {
       }
       list.append(item);
     }
+    renderHistoricalAdjustments(adjustments, host);
   } catch (error) {
     if (state.token) notify(error.message, true);
   }
+}
+
+function renderHistoricalAdjustments(adjustments, host) {
+  const list = host ? $("#pending-adjustments") : $("#my-adjustments");
+  list.replaceChildren();
+  const visible = host ? adjustments.filter((item) => item.estado === "pendiente") : adjustments;
+  if (!visible.length) {
+    empty(list, host ? "No hay ajustes históricos pendientes." : "Todavía no has solicitado noches históricas.");
+    return;
+  }
+  for (const adjustment of visible) {
+    const title = `${adjustment.cantidad} ${adjustment.cantidad === 1 ? "noche" : "noches"} históricas`;
+    const item = card(host ? adjustment.username : title, adjustment.estado.toUpperCase(), adjustment.estado === "pendiente" ? "badge-pending" : "");
+    item.classList.add("event-card--history");
+    metadata(item, host ? title : `Estado: ${adjustment.estado}`, `Referencia: ${formatDate(adjustment.fecha_referencia, false)}`);
+    item.append(element("p", "", adjustment.motivo));
+    if (host) {
+      const actions = element("div", "card-actions");
+      for (const [label, value, style] of [["Aprobar", "aprobada", "button-light"], ["Rechazar", "rechazada", "button-danger"]]) {
+        const button = element("button", `button ${style}`, label);
+        button.type = "button";
+        button.addEventListener("click", () => act(button, async () => {
+          await apiFetch(`ajustes-pernoctaciones/${adjustment.ajuste_id}/validacion`, "PUT", { estado: value });
+          notify(`Ajuste histórico ${value}.`);
+          await loadNights();
+        }));
+        actions.append(button);
+      }
+      item.append(actions);
+    } else if (adjustment.estado !== "aprobada") {
+      const actions = element("div", "card-actions");
+      if (adjustment.estado === "rechazada") {
+        const retry = element("button", "button button-light", "Reenviar");
+        retry.type = "button";
+        retry.addEventListener("click", () => act(retry, async () => {
+          await apiFetch(`ajustes-pernoctaciones/${adjustment.ajuste_id}`, "PUT", {});
+          notify("Ajuste reenviado para validar.");
+          await loadNights();
+        }));
+        actions.append(retry);
+      }
+      const remove = element("button", "button button-danger", "Eliminar");
+      remove.type = "button";
+      remove.addEventListener("click", () => act(remove, async () => {
+        await apiFetch(`ajustes-pernoctaciones/${adjustment.ajuste_id}`, "DELETE");
+        notify("Solicitud eliminada.");
+        await loadNights();
+      }));
+      actions.append(remove);
+      item.append(actions);
+    }
+    list.append(item);
+  }
+}
+
+function setHistoricalReference() {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const pad = (number) => String(number).padStart(2, "0");
+  $("#historical-form [name=fecha_referencia]").value = `${yesterday.getFullYear()}-${pad(yesterday.getMonth() + 1)}-${pad(yesterday.getDate())}`;
 }
 
 function onForm(selector, handler) {
@@ -512,6 +577,17 @@ function init() {
     notify("Noche enviada para validar.");
     await loadNights();
   });
+  onForm("#historical-form", async (data, form) => {
+    await apiFetch("ajustes-pernoctaciones", "POST", {
+      fecha_referencia: data.fecha_referencia,
+      cantidad: Number(data.cantidad),
+      motivo: data.motivo,
+    });
+    form.reset();
+    setHistoricalReference();
+    notify("Ajuste histórico enviado para validar.");
+    await loadNights();
+  });
   onForm("#activity-form", async (data, form) => {
     await apiFetch("actividades", "POST", { titulo: data.titulo, fecha_hora: data.fecha_hora, lugar: data.lugar, descripcion: data.descripcion || null });
     form.reset();
@@ -524,6 +600,8 @@ function init() {
     notify("¡Comida publicada!");
     navigate("planes");
   });
+
+  setHistoricalReference();
 
   try {
     const token = localStorage.getItem(TOKEN_KEY);

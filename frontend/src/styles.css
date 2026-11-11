@@ -113,6 +113,10 @@ p { color: var(--muted); }
 .panel + .panel { margin-top: 18px; }
 .panel h2 { color: var(--paper-ink); }
 .panel-description { margin: 6px 0 22px; font-size: .91rem; }
+.historical-details { margin-top: 26px; padding: 16px; border: 1px solid #d8c6e1; border-radius: 12px; background: #f9f3fc; }
+.historical-details summary { color: #63347e; cursor: pointer; font-size: .9rem; font-weight: 850; }
+.historical-details .panel-description { margin: 14px 0; }
+.historical-details .form-stack { margin-top: 16px; }
 .segmented { display: flex; gap: 4px; padding: 4px; border: 1px solid #cfc3d9; border-radius: 10px; background: #ece5ef; }
 .segmented button { flex: 1; min-width: 0; padding: 10px 5px; border: 0; border-radius: 7px; background: transparent; color: #615977; font-size: .86rem; font-weight: 800; }
 .segmented button.selected { background: var(--night-light); color: #fff; box-shadow: 2px 3px 0 #b2a9c4; }
@@ -140,6 +144,7 @@ p { color: var(--muted); }
 .event-card { position: relative; padding: 20px; border-radius: 14px; overflow: hidden; }
 .event-card::after { position: absolute; top: -17px; right: 14px; content: "♠"; color: rgb(121 99 186 / 13%); font-size: 5.8rem; line-height: 1; pointer-events: none; }
 .event-card--meal::after { content: "♥"; color: rgb(216 80 105 / 13%); }
+.event-card--history::after { content: "♣"; color: rgb(121 99 186 / 13%); }
 .event-card > * { position: relative; z-index: 1; }
 .card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 15px; }
 .badge { display: inline-flex; padding: 5px 10px; border: 1px solid #8977be; border-radius: 6px; background: #eee7ff; color: #4d3688; font-size: .7rem; font-weight: 950; letter-spacing: .09em; }

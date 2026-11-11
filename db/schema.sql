@@ -30,6 +30,23 @@ CREATE TABLE IF NOT EXISTS pernoctaciones (
     FOREIGN KEY (validado_por) REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- One request can represent several earlier nights whose exact dates are unknown.
+-- fecha_referencia is not a claim that all nights happened on that day.
+CREATE TABLE IF NOT EXISTS ajustes_pernoctaciones (
+    ajuste_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    usuario_id BIGINT UNSIGNED NOT NULL,
+    fecha_referencia DATE NOT NULL,
+    cantidad TINYINT UNSIGNED NOT NULL,
+    motivo VARCHAR(255) NOT NULL,
+    estado ENUM('pendiente', 'aprobada', 'rechazada') NOT NULL DEFAULT 'pendiente',
+    validado_por BIGINT UNSIGNED NULL,
+    fecha_validacion DATETIME NULL,
+    UNIQUE KEY uq_ajustes_usuario_referencia (usuario_id, fecha_referencia),
+    CONSTRAINT chk_ajustes_cantidad CHECK (cantidad BETWEEN 1 AND 31),
+    FOREIGN KEY (usuario_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (validado_por) REFERENCES users(user_id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS actividades (
     actividad_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     titulo VARCHAR(100) NOT NULL,

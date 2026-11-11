@@ -78,6 +78,10 @@ curl -X PUT http://localhost:8000/api/pernoctaciones/1/validacion \
 
 Para rechazarla, usa `"estado":"rechazada"`. Solo las noches aprobadas suman en el ranking, con empates. Un invitado puede editar y volver a enviar una noche rechazada, o borrar una pendiente/rechazada; no puede alterar una aprobada.
 
+### Noches históricas sin fecha exacta
+
+En **Nuevo → Noche**, un invitado puede desplegar **«¿No recuerdas las fechas?»** y solicitar un ajuste: cantidad de noches, motivo y una fecha **solo de referencia** (por defecto, ayer). Por ejemplo, una solicitud de `5` significa cinco noches anteriores, **no cinco noches en la fecha de referencia**. Se permite una solicitud por usuario y fecha de referencia, de 1 a 31 noches. Un anfitrión la aprueba o rechaza en la misma vista. Solo los ajustes aprobados suman al ranking, junto con las pernoctaciones normales; las solicitudes rechazadas se pueden reenviar y las pendientes/rechazadas se pueden eliminar. Las noches normales con fecha conocida siguen contando una por día, sin cambios.
+
 ## Rutas de la fase 2
 
 Todas requieren la cabecera `Token`:
@@ -93,6 +97,9 @@ Todas requieren la cabecera `Token`:
 | GET, POST | `/api/pernoctaciones` | Ver noches (anfitrión: todas; invitado: propias) o solicitar una propia |
 | PUT, DELETE | `/api/pernoctaciones/{id}` | Editar o borrar una noche propia pendiente/rechazada |
 | PUT | `/api/pernoctaciones/{id}/validacion` | Aprobar/rechazar noche pendiente (solo anfitrión) |
+| GET, POST | `/api/ajustes-pernoctaciones` | Consultar o solicitar noches históricas sin fechas exactas (`fecha_referencia`, `cantidad`, `motivo`) |
+| PUT, DELETE | `/api/ajustes-pernoctaciones/{id}` | Reenviar una solicitud rechazada o eliminar una solicitud propia no aprobada |
+| PUT | `/api/ajustes-pernoctaciones/{id}/validacion` | Aprobar/rechazar un ajuste pendiente (solo anfitrión) |
 | GET | `/api/ranking/pernoctaciones` | Ranking de invitados por noches aprobadas |
 
 Los campos de fecha usan `AAAA-MM-DD` y los de fecha y hora `AAAA-MM-DDTHH:MM:SS` (hora local, sin zona). Ejemplo de creación de actividad:

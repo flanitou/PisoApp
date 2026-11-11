@@ -15,6 +15,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY settings.py main.py api.py avatars.py migrate.py ./
+RUN mkdir -p /app/endpoints
 
 EXPOSE 8000
 
